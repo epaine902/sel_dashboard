@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supporting the Whole Child: An Interactive Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Teal & Slate -->
+    <!-- Application Structure Plan: A tabbed, non-linear dashboard structure was chosen over a linear scroll to allow teachers to quickly access specific resources (like the Toolbox) or concepts (like Lesson Planning) as needed. This task-oriented design enhances usability for busy educators who may use this as a reference tool rather than a one-time read. Navigation is handled by a sticky top bar, and content sections are swapped dynamically with JavaScript. -->
+    <!-- Visualization & Content Choices: A CASEL competency doughnut chart (Goal: Inform/Organize, Method: Chart.js Canvas) provides a visual anchor for the core framework. An interactive grade-level selector (Goal: Inform/Compare, Method: JS + HTML) shows developmental differences in SEL. A filterable card-based Toolbox (Goal: Organize/Inform, Method: JS + HTML/CSS) allows for easy resource discovery. An accordion component for the lesson planning section (Goal: Organize, Method: JS + HTML/CSS) manages information density and reduces cognitive load. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .nav-active {
+            background-color: #0d9488; /* teal-600 */
+            color: white;
+        }
+        .nav-inactive {
+            background-color: white;
+            color: #334155; /* slate-700 */
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 350px;
+            margin-left: auto;
+            margin-right: auto;
+            height: auto;
+            max-height: 350px;
+        }
+        .skills-table th, .skills-table td {
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0; /* slate-200 */
+        }
+        .skills-table th {
+            background-color: #f8fafc; /* slate-50 */
+            font-weight: 600;
+            text-align: left;
+            color: #115e59; /* teal-800 */
+        }
+        .skills-table td {
+            vertical-align: top;
+            color: #475569; /* slate-600 */
+            font-size: 0.9rem;
+            cursor: pointer; /* Make cells clickable */
+        }
+        .skills-table td:hover {
+            background-color: #f0f9ff; /* sky-50 */
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div id="app" class="container mx-auto p-4 md:p-6 lg:p-8 max-w-7xl">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-teal-700">Supporting the Whole Child</h1>
+            <p class="text-lg md:text-xl text-slate-600 mt-2">Integrating SEL into Your Tech Instruction</p>
+        </header>
+
+        <nav id="main-nav" class="sticky top-0 z-10 bg-white/80 backdrop-blur-sm shadow-md rounded-lg mb-8 flex flex-wrap justify-center items-center gap-2 p-2">
+            <button data-target="sel-lens" class="nav-button nav-active px-4 py-2 rounded-md font-semibold transition-colors duration-200 text-sm md:text-base">1. The SEL Lens</button>
+            <button data-target="skills-at-glance" class="nav-button nav-inactive px-4 py-2 rounded-md font-semibold transition-colors duration-200 text-sm md:text-base">2. Skills at a Glance</button>
+            <button data-target="toolbox" class="nav-button nav-inactive px-4 py-2 rounded-md font-semibold transition-colors duration-200 text-sm md:text-base">3. The Toolbox</button>
+            <button data-target="planning" class="nav-button nav-inactive px-4 py-2 rounded-md font-semibold transition-colors duration-200 text-sm md:text-base">4. Lesson Planning</button>
+            <button data-target="resources" class="nav-button nav-inactive px-4 py-2 rounded-md font-semibold transition-colors duration-200 text-sm md:text-base">5. Resources</button>
+        </nav>
+
+        <main id="main-content">
+
+            <section id="sel-lens" class="content-section space-y-8">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4">Start Here: The Educator's SEL Lens</h2>
+                    <p class="text-slate-600 mb-6">Effective Social-Emotional Learning begins with us. Before we can support our students, it's valuable to examine our own SEL skills. This section provides prompts for self-reflection and helps frame our understanding of student SEL across different developmental stages. For a comprehensive overview or self-assessment, explore this <a href="https://casel.org/fundamentals-of-sel/what-is-the-casel-framework/" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline font-medium">summary of SEL competencies from CASEL</a>.</p>
+                    
+                    <div class="grid md:grid-cols-2 gap-8 items-start">
+                        <div>
+                            <h3 class="text-xl font-semibold mb-4 text-slate-700">Examine Your Own SEL Skillset</h3>
+                            <p class="text-slate-600 mb-4">Reflect on your own SEL competencies. Consider how these skills play out in your daily teaching practice, especially when faced with challenges.</p>
+                            <div id="sel-competency-cards" class="space-y-3"></div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="selChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-slate-200">
+                        <h3 class="text-xl font-semibold mb-4 text-slate-700">Your SEL Reflection</h3>
+                        <p class="text-slate-600 mb-4">Use the prompts below to reflect on each SEL competency. Your reflections will be saved for your personal reference.</p>
+                        <div id="sel-reflection-form" class="space-y-4">
+                            <!-- Reflection textareas will be populated here -->
+                        </div>
+                        <button id="save-reflections-btn" class="mt-6 px-6 py-3 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors duration-200 font-semibold">Save All Reflections</button>
+                        <div id="save-status" class="mt-2 text-sm text-slate-600"></div>
+
+                        <div class="mt-8 pt-6 border-t border-slate-200">
+                            <h3 class="text-xl font-semibold mb-4 text-slate-700">Your Past Reflections (User ID: <span id="user-id-display" class="font-mono text-sm bg-slate-100 px-2 py-1 rounded">Loading...</span>)</h3>
+                            <div id="past-reflections-list" class="space-y-4">
+                                <p class="text-slate-500 italic">Loading past reflections...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-xl font-semibold mb-4 text-slate-700">Understanding Student SEL: A Developmental Spectrum</h3>
+                    <p class="text-slate-600 mb-4">SEL skills manifest differently across age groups. Select a grade level to see typical developmental markers and what to observe in the classroom, especially when diverse needs like EAL, LD, and ADHD are present.</p>
+                    <div class="mb-4">
+                        <label for="grade-level-select" class="block text-sm font-medium text-slate-700 mb-1">Select Grade Level:</label>
+                        <select id="grade-level-select" class="w-full md:w-1/2 p-2 border border-slate-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                            <option value="k-3">Primary (K-3)</option>
+                            <option value="4-6">Elementary (4-6)</option>
+                            <option value="7-9">Junior High (7-9)</option>
+                            <option value="10-12">Senior High (10-12)</option>
+                        </select>
+                    </div>
+                    <div id="student-sel-content" class="bg-slate-50 p-4 rounded-md border border-slate-200"></div>
+                </div>
+            </section>
+
+            <section id="skills-at-glance" class="content-section hidden space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4">Skills at a Glance: Developmental Progression of SEL</h2>
+                    <p class="text-slate-600 mb-6">This table provides a quick overview of how each Social-Emotional Learning competency typically evolves across different grade levels. Click on any cell to see examples, a sample lesson plan, and an activity for that specific skill and grade level.</p>
+                    <div class="overflow-x-auto">
+                        <table id="skills-table" class="skills-table w-full border-collapse">
+                            <thead>
+                                <tr>
+                                    <th>SEL Competency</th>
+                                    <th>Primary (K-3)</th>
+                                    <th>Elementary (4-6)</th>
+                                    <th>Junior High (7-9)</th>
+                                    <th>Senior High (10-12)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Table content will be rendered by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="skill-detail-page" class="content-section hidden space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <button id="back-to-skills" class="mb-4 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors duration-200 flex items-center">
+                        <span class="mr-2">←</span> Back to Skills at a Glance
+                    </button>
+                    <h2 id="detail-title" class="text-2xl font-bold text-teal-700 mb-4"></h2>
+                    <div id="detail-content" class="space-y-6 text-slate-600">
+                        <!-- Dynamic content will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <section id="toolbox" class="content-section hidden space-y-6">
+                 <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4">The Toolbox</h2>
+                    <p class="text-slate-600 mb-6">This is a curated collection of technology and classroom strategies to nurture Social-Emotional Learning. Use the filters to find the perfect tool for your students' needs and your lesson objectives. Each card provides a starting point for creating a more supportive learning environment.</p>
+
+                    <div class="flex flex-wrap gap-4 p-4 bg-slate-100 rounded-lg mb-6">
+                        <div class="flex-grow">
+                            <label for="filter-competency" class="block text-sm font-medium text-slate-700">Filter by SEL Competency</label>
+                            <select id="filter-competency" class="mt-1 block w-full p-2 border-slate-300 rounded-md shadow-sm">
+                                <option value="all">All Competencies</option>
+                                <option value="Self-Awareness">Self-Awareness</option>
+                                <option value="Self-Management">Self-Management</option>
+                                <option value="Social Awareness">Social Awareness</option>
+                                <option value="Relationship Skills">Relationship Skills</option>
+                                <option value="Responsible Decision-Making">Responsible Decision-Making</option>
+                            </select>
+                        </div>
+                        <div class="flex-grow">
+                            <label for="filter-type" class="block text-sm font-medium text-slate-700">Filter by Tool Type</label>
+                            <select id="filter-type" class="mt-1 block w-full p-2 border-slate-300 rounded-md shadow-sm">
+                                <option value="all">All Types</option>
+                                <option value="Tech">💻 Tech Tool</option>
+                                <option value="Procedure">📋 Classroom Procedure</option>
+                                <option value="Text">📖 Text-Based Resource</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="tool-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    </div>
+                </div>
+            </section>
+
+            <section id="planning" class="content-section hidden space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4">Integrating SEL into Lesson Planning</h2>
+                    <p class="text-slate-600 mb-6">True integration happens when SEL is woven into the fabric of your curriculum, not treated as a separate subject. This section provides frameworks and strategies for embedding SEL into your daily lesson planning, aligning with Nova Scotia's curriculum and supporting all learners through thoughtful design.</p>
+                    <div id="planning-accordion" class="space-y-3"></div>
+                </div>
+            </section>
+
+            <section id="resources" class="content-section hidden space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4">Resources & Next Steps</h2>
+                    <p class="text-slate-600 mb-6">Continue your journey with these curated resources. Here you'll find links to leading organizations, insightful articles, and other materials to support your work in integrating SEL and technology.</p>
+                    <div id="resources-list" class="space-y-4"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        let db;
+        let auth;
+        let currentUserId = 'anonymous'; // Default to anonymous until authenticated
+        let isAuthReady = false; // Flag to ensure Firestore operations wait for auth
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            const navButtons = document.querySelectorAll('.nav-button');
+            const contentSections = document.querySelectorAll('.content-section');
+            const userIdDisplay = document.getElementById('user-id-display');
+            const pastReflectionsList = document.getElementById('past-reflections-list');
+            const saveReflectionsBtn = document.getElementById('save-reflections-btn');
+            const saveStatusDiv = document.getElementById('save-status');
+
+            // Firebase Initialization
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+            
+            if (Object.keys(firebaseConfig).length > 0) {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        userIdDisplay.textContent = currentUserId;
+                        isAuthReady = true;
+                        await loadAndDisplayReflections();
+                        await prePopulateReflections();
+                    } else {
+                        // Sign in anonymously if no initial token is provided
+                        try {
+                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (error) {
+                            console.error("Error during anonymous sign-in:", error);
+                            userIdDisplay.textContent = 'Error';
+                        }
+                    }
+                });
+            } else {
+                console.error("Firebase config not found. Reflections will not be saved.");
+                userIdDisplay.textContent = 'Not Available (No Firebase)';
+                isAuthReady = true; // Allow other parts of the app to function
+            }
+
+            const selCompetencies = [
+                { name: 'Self-Awareness', color: '#0d9488', description: 'Recognizing one\'s emotions, values, strengths, and limitations.', prompt: 'How do you recognize your own emotional triggers during a busy school day?' },
+                { name: 'Self-Management', color: '#0f766e', description: 'Managing emotions, thoughts, and behaviors effectively in different situations.', prompt: 'What strategy do you use to stay calm and focused when a lesson goes off-track?' },
+                { name: 'Social Awareness', color: '#115e59', description: 'Understanding the perspectives of and empathizing with others.', prompt: 'How do you work to understand the perspective of a student with a very different background from your own?' },
+                { name: 'Relationship Skills', color: '#134e4a', description: 'Establishing and maintaining healthy and supportive relationships.', prompt: 'Think of a difficult conversation with a colleague or parent. What relationship skills did you use?' },
+                { name: 'Responsible Decision-Making', color: '#042f2e', description: 'Making caring and constructive choices about personal behavior and social interactions.', prompt: 'How do you model ethical and responsible decision-making when using technology in your classroom?' }
+            ];
+
+            const studentSELCopy = {
+                'k-3': {
+                    title: 'Primary (K-3)',
+                    content: `
+                        <p class="mb-2"><strong>What it looks like:</strong> Students are learning to identify basic emotions (happy, sad, angry), take turns, and follow simple directions. They are highly egocentric but beginning to show empathy.</p>
+                        <p><strong>What to observe:</strong> Ability to name feelings, share toys, listen during story time, and ask for help. For diverse learners, look for non-verbal cues and provide visual aids for emotions.</p>
+                    `
+                },
+                '4-6': {
+                    title: 'Elementary (4-6)',
+                    content: `
+                        <p class="mb-2"><strong>What it looks like:</strong> Developing more complex emotional vocabulary, understanding others' perspectives, and managing friendships. Group work can be challenging.</p>
+                        <p><strong>What to observe:</strong> How they handle disagreements, work in groups, show empathy for peers, and manage frustration with difficult tasks. Tech can be a great outlet for expression but also a source of conflict.</p>
+                    `
+                },
+                '7-9': {
+                    title: 'Junior High (7-9)',
+                    content: `
+                        <p class="mb-2"><strong>What it looks like:</strong> Navigating complex social hierarchies, peer pressure, and a stronger sense of self-identity. Emotional regulation can be a major challenge.</p>
+                        <p><strong>What to observe:</strong> Online social interactions (digital citizenship), response to feedback, ability to set and work toward long-term goals, and how they advocate for themselves and others. Support for executive functioning is key.</p>
+                    `
+                },
+                '10-12': {
+                    title: 'Senior High (10-12)',
+                    content: `
+                        <p class="mb-2"><strong>What it looks like:</strong> Making high-stakes decisions about the future, managing stress, and maintaining complex relationships. Developing a sense of purpose and ethical responsibility.</p>
+                        <p><strong>What to observe:</strong> Responsible use of technology for research and collaboration, ability to manage long-term projects, conflict resolution skills, and planning for post-secondary life. Agency and self-advocacy are critical.</p>
+                    `
+                }
+            };
+
+            const skillsAtAGlanceData = [
+                {
+                    competency: 'Self-Awareness',
+                    'k-3': 'Identifying basic emotions (happy, sad), recognizing likes/dislikes.',
+                    '4-6': 'Understanding a wider range of emotions, identifying personal strengths/weaknesses.',
+                    '7-9': 'Recognizing how emotions influence behavior, understanding personal values/interests.',
+                    '10-12': 'Reflecting on personal identity, understanding biases, setting realistic self-perceptions.'
+                },
+                {
+                    competency: 'Self-Management',
+                    'k-3': 'Following simple rules, managing impulses with support, waiting for turns.',
+                    '4-6': 'Setting simple goals, managing frustration, beginning to organize tasks.',
+                    '7-9': 'Regulating emotions in challenging situations, setting academic/personal goals, managing time.',
+                    '10-12': 'Developing stress management techniques, demonstrating self-discipline, adapting to change.'
+                },
+                {
+                    competency: 'Social Awareness',
+                    'k-3': 'Recognizing others\' feelings, understanding simple social cues.',
+                    '4-6': 'Empathizing with peers, understanding different perspectives, respecting differences.',
+                    '7-9': 'Understanding group dynamics, recognizing social norms, appreciating diversity.',
+                    '10-12': 'Analyzing social systems, understanding societal issues, showing global empathy.'
+                },
+                {
+                    competency: 'Relationship Skills',
+                    'k-3': 'Sharing, taking turns, playing cooperatively, asking for help.',
+                    '4-6': 'Communicating effectively, making friends, resolving minor conflicts.',
+                    '7-9': 'Building healthy relationships, effective teamwork, conflict resolution strategies.',
+                    '10-12': 'Navigating complex relationships, leadership, advocating for others, networking.'
+                },
+                {
+                    competency: 'Responsible Decision-Making',
+                    'k-3': 'Following safety rules, making simple choices with guidance.',
+                    '4-6': 'Considering consequences of actions, solving problems collaboratively.',
+                    '7-9': 'Analyzing situations, evaluating options, making ethical choices.',
+                    '10-12': 'Considering well-being of self/others, making constructive choices, contributing to community.'
+                }
+            ];
+
+            // New data structure for skill details
+            const skillDetails = {
+                'Self-Awareness_k-3': {
+                    title: 'Self-Awareness in Primary (K-3)',
+                    examples: [
+                        'A child drawing a picture of themselves feeling "mad" and explaining why.',
+                        'Students using an "emotion chart" to point to how they feel.',
+                        'A student saying "I feel frustrated because my block tower keeps falling.".'
+                    ],
+                    lessonPlan: {
+                        title: 'Introductory Lesson: My Feelings Wheel',
+                        objective: 'Students will identify and express basic emotions using a visual aid.',
+                        materials: 'Digital feelings wheel (e.g., interactive online wheel or printable), drawing supplies, tablets/computers.',
+                        activity: '1. Introduce the concept of feelings and why they are important. Show a digital feelings wheel. 2. Guide students to click on different emotions and discuss what they mean. 3. Have students draw a picture of themselves feeling a specific emotion and share with a partner. 4. Use a tool like Seesaw for students to record a short video explaining their drawing and feeling.'
+                    },
+                    activity: 'Use a simple online "mood meter" or a digital journal (like Seesaw) where students can select an emoji or draw how they are feeling at the start of the day. Discuss patterns over time.'
+                },
+                'Relationship Skills_7-9': {
+                    title: 'Relationship Skills in Junior High (7-9)',
+                    examples: [
+                        'Students collaboratively editing a shared document for a group project, assigning roles, and resolving minor disagreements.',
+                        'Using online discussion forums to provide constructive feedback to peers on presentations.',
+                        'Students mediating a conflict between classmates using agreed-upon digital communication norms.'
+                    ],
+                    lessonPlan: {
+                        title: 'Introductory Lesson: Digital Collaboration Norms',
+                        objective: 'Students will co-create and practice norms for respectful and effective digital collaboration.',
+                        materials: 'Jamboard or Miro board, Google Docs/Slides, scenario cards (digital or physical) with common group work challenges.',
+                        activity: '1. Discuss challenges of online group work. 2. In small groups, brainstorm "Do\'s and Don\'ts" for digital collaboration on a shared Jamboard. 3. As a class, synthesize these into 3-5 key norms. 4. Present a digital scenario (e.g., "One group member isn\'t contributing"). Students use a shared Google Doc to draft a response applying the norms. 5. Reflect on the process.'
+                    },
+                    activity: 'Assign a small group project requiring a shared digital workspace (e.g., Google Slides presentation). Provide a rubric that includes SEL skills like "contributes equally," "listens to others\' ideas," and "resolves conflict respectfully." Have groups use a private chat feature within their LMS to practice communication and problem-solving.'
+                },
+                'Self-Management_4-6': {
+                    title: 'Self-Management in Elementary (4-6)',
+                    examples: [
+                        'A student using a digital checklist to track their homework assignments.',
+                        'Students taking a "brain break" using a guided mindfulness video when feeling overwhelmed.',
+                        'A child setting a personal reading goal in a digital tracker and monitoring their progress.'
+                    ],
+                    lessonPlan: {
+                        title: 'Introductory Lesson: Digital Goal Setting',
+                        objective: 'Students will learn to set a simple, achievable goal and use a digital tool to track progress.',
+                        materials: 'Tablets/computers, access to Padlet or Google Keep, "My Goal" worksheet (digital or physical).',
+                        activity: '1. Discuss what a "goal" is and why they are helpful. 2. Introduce the concept of SMART goals (Simple, Measurable, Achievable, Relevant, Time-bound) at an age-appropriate level. 3. Have students choose one small goal (e.g., "read for 10 minutes daily," "complete math homework before dinner"). 4. Guide them to create a digital sticky note on Padlet or a checklist in Google Keep to track their daily progress. 5. Share and discuss progress at the end of the week.'
+                    },
+                    activity: 'Use a digital timer (e.g., online timer, app) for focused work periods, followed by short "movement breaks" found on YouTube. Discuss how these breaks help them refocus and manage their energy.'
+                },
+                'Social Awareness_10-12': {
+                    title: 'Social Awareness in Senior High (10-12)',
+                    examples: [
+                        'Students analyzing different perspectives on a current global issue using online news sources and discussion forums.',
+                        'Using virtual reality (if available) to experience scenarios from diverse cultural backgrounds.',
+                        'A student researching and presenting on a social justice issue, demonstrating understanding of systemic inequalities.'
+                    ],
+                    lessonPlan: {
+                        title: 'Introductory Lesson: Exploring Global Perspectives',
+                        objective: 'Students will use digital resources to understand and empathize with diverse global perspectives on a chosen issue.',
+                        materials: 'Computers/laptops, access to reputable news sites (e.g., BBC, Al Jazeera, local news), online discussion forum (e.g., LMS discussion board).',
+                        activity: '1. Introduce a current event or social issue (e.g., climate change impact, refugee crisis, technological ethics). 2. In small groups, students research different perspectives or impacts of this issue using diverse online sources. 3. Groups share key findings in a brief digital presentation (e.g., 3-slide Google Slides). 4. Engage in a class discussion or online forum, encouraging students to articulate and respectfully challenge different viewpoints, focusing on empathy and understanding.'
+                    },
+                    activity: 'Assign a research project on a historical event or social movement. Require students to use digital tools (e.g., video essays, interactive timelines) to present the perspectives of at least two different groups involved, highlighting their motivations and challenges.'
+                }
+            };
+            
+            const tools = [
+                { name: 'Flip (formerly Flipgrid)', type: 'Tech', competencies: ['Self-Awareness', 'Relationship Skills'], description: 'Video discussion platform for students to reflect, share ideas, and provide peer feedback.' },
+                { name: 'Seesaw', type: 'Tech', competencies: ['Self-Awareness', 'Self-Management'], description: 'Digital portfolio tool for students to document their learning, reflect on progress, and set goals.' },
+                { name: 'Google Docs/Slides Portfolios', type: 'Tech', competencies: ['Self-Awareness', 'Self-Management'], description: 'Simple, powerful way for students to curate and reflect on their work over time.' },
+                { name: 'Trello / Padlet', type: 'Tech', competencies: ['Self-Management'], description: 'Visual organization tools to help students manage tasks, break down large projects, and track progress.' },
+                { name: 'Calm or Headspace Apps', type: 'Tech', competencies: ['Self-Management'], description: 'Guided meditation and mindfulness resources to help students manage stress and focus.' },
+                { name: 'Google Workspace / M365', type: 'Tech', competencies: ['Relationship Skills', 'Responsible Decision-Making'], description: 'Collaborative suites for group projects that require communication, shared responsibility, and digital etiquette.' },
+                { name: 'StoryboardThat / Book Creator', type: 'Tech', competencies: ['Social Awareness'], description: 'Digital storytelling tools to help students explore different perspectives and build empathy.' },
+                { name: 'Online Safety Simulations', type: 'Tech', competencies: ['Responsible Decision-Making'], description: 'Interactive scenarios (e.g., from Common Sense Education) that challenge students to make safe and ethical choices online.' },
+                { name: 'Morning Meetings/Check-ins', type: 'Procedure', competencies: ['Self-Awareness', 'Social Awareness', 'Relationship Skills'], description: 'A daily routine to build community, where students can share feelings and connect with peers.' },
+                { name: 'Restorative Practices', type: 'Procedure', competencies: ['Relationship Skills', 'Responsible Decision-Making'], description: 'A framework for resolving conflict that focuses on repairing harm and rebuilding relationships.' },
+                { name: 'Explicit Communication Norms', type: 'Procedure', competencies: ['Relationship Skills'], description: 'Co-creating guidelines for respectful communication for both in-person and digital conversations (e.g., in an LMS).' },
+                { name: 'SEL-Focused Literature', type: 'Text', competencies: ['Social Awareness', 'Self-Awareness'], description: 'Using picture books, novels, and articles as a springboard for discussions about emotions, empathy, and ethical dilemmas.' },
+                { name: 'Emotion Charts / Visuals', type: 'Text', competencies: ['Self-Awareness'], description: 'Visual aids that help students identify and name their feelings, especially useful for younger learners or EAL students.' },
+                { name: 'Social Stories', type: 'Text', competencies: ['Social Awareness'], description: 'Narratives that describe social situations to help students understand social cues and appropriate responses.' },
+            ];
+
+            const planningContent = [
+                { title: 'Aligning with NS Curriculum', content: 'SEL is not an "add-on." Look for verbs in your curriculum outcomes like "collaborate," "analyze," "justify," or "solve." These are entry points for SEL. A history project on different perspectives naturally builds Social Awareness. A science lab requires collaboration and Responsible Decision-Making. The key is to be intentional about naming and nurturing these skills during the academic task.' },
+                { title: 'Universal Design for Learning (UDL)', content: 'UDL and SEL are deeply connected. Use technology to provide multiple means of engagement (e.g., choice in tools), representation (e.g., text, video, audio), and action/expression (e.g., letting students show what they know via a podcast, a slide deck, or a written report). This flexibility supports both academic learning and student agency, a cornerstone of SEL.' },
+                { title: 'Project-Based & Inquiry-Based Learning', content: 'PBL and inquiry-based learning are powerful vehicles for SEL. They require students to manage long-term tasks (Self-Management), work with peers (Relationship Skills), consider different viewpoints (Social Awareness), and make choices about their project\'s direction (Responsible Decision-Making). Technology can facilitate this process from research and collaboration to creating and sharing the final product.' },
+                { title: 'Formative Assessment of SEL', content: 'Assessing SEL is about observation, not grading. Use simple digital checklists to note student collaboration during a project. Have students use a Google Form for a quick self-assessment after a group task. Use portfolio reflections (Seesaw, Flip) to see how students are thinking about their own growth. The goal is to gather information to better support them.' }
+            ];
+
+            const resourcesContent = [
+                { category: 'Organizations', items: [
+                    { name: 'CASEL', url: 'https://casel.org/', description: 'The Collaborative for Academic, Social, and Emotional Learning; the leading source for SEL frameworks and research.' },
+                    { name: 'Edutopia', url: 'https://www.edutopia.org/social-emotional-learning', description: 'A rich source of articles, videos, and practical strategies for SEL in the classroom.' },
+                    { name: 'Common Sense Education', url: 'https://www.commonsense.org/education/digital-citizenship', description: 'Excellent resources and curricula for teaching digital citizenship, a key part of modern SEL.' }
+                ]},
+                { category: 'Nova Scotia Specific', items: [
+                    { name: 'NSDE Curriculum', url: 'https://curriculum.novascotia.ca/', description: 'Explore the provincial curriculum documents to find direct links to SEL competencies.' },
+                    { name: 'Inclusive Education Policy (NS)', url: 'https://www.ednet.ns.ca/inclusiveeducation', description: 'Review the provincial policy that underpins the work of supporting all learners.' }
+                ]}
+            ];
+
+            function navigate(targetId) {
+                contentSections.forEach(section => {
+                    section.classList.toggle('hidden', section.id !== targetId);
+                });
+                navButtons.forEach(button => {
+                    button.classList.toggle('nav-active', button.dataset.target === targetId);
+                    button.classList.toggle('nav-inactive', button.dataset.target !== targetId);
+                });
+            }
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => navigate(button.dataset.target));
+            });
+
+            function renderCompetencyCards() {
+                const container = document.getElementById('sel-competency-cards');
+                container.innerHTML = selCompetencies.map(c => `
+                    <div class="border border-slate-200 rounded-lg p-3">
+                        <h4 class="font-semibold text-teal-700">${c.name}</h4>
+                        <p class="text-sm text-slate-500">${c.description}</p>
+                    </div>
+                `).join('');
+            }
+
+            function renderReflectionForm() {
+                const formContainer = document.getElementById('sel-reflection-form');
+                formContainer.innerHTML = selCompetencies.map(c => `
+                    <div>
+                        <label for="reflection-${c.name.replace(/\s/g, '-')}" class="block text-sm font-medium text-slate-700 mb-1">${c.name}: ${c.prompt}</label>
+                        <textarea id="reflection-${c.name.replace(/\s/g, '-')}" rows="3" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500"></textarea>
+                    </div>
+                `).join('');
+            }
+
+            async function saveReflections() {
+                if (!isAuthReady || !db || !currentUserId) {
+                    saveStatusDiv.textContent = 'Error: Not authenticated or Firebase not initialized.';
+                    saveStatusDiv.classList.add('text-red-600');
+                    return;
+                }
+
+                saveStatusDiv.textContent = 'Saving...';
+                saveStatusDiv.classList.remove('text-red-600', 'text-green-600');
+                saveStatusDiv.classList.add('text-slate-600');
+
+                const reflections = {};
+                selCompetencies.forEach(c => {
+                    const textarea = document.getElementById(`reflection-${c.name.replace(/\s/g, '-')}`);
+                    if (textarea) {
+                        reflections[c.name.replace(/\s/g, '')] = textarea.value;
+                    }
+                });
+
+                try {
+                    const docRef = doc(collection(db, `artifacts/${appId}/users/${currentUserId}/teacherReflections`));
+                    await setDoc(docRef, {
+                        userId: currentUserId,
+                        timestamp: new Date(),
+                        ...reflections
+                    });
+                    saveStatusDiv.textContent = 'Reflections saved successfully!';
+                    saveStatusDiv.classList.remove('text-slate-600');
+                    saveStatusDiv.classList.add('text-green-600');
+                    await loadAndDisplayReflections(); // Reload to show new entry
+                } catch (e) {
+                    console.error("Error adding document: ", e);
+                    saveStatusDiv.textContent = 'Error saving reflections. Please try again.';
+                    saveStatusDiv.classList.remove('text-slate-600');
+                    saveStatusDiv.classList.add('text-red-600');
+                }
+            }
+
+            async function loadAndDisplayReflections() {
+                if (!isAuthReady || !db || !currentUserId) {
+                    pastReflectionsList.innerHTML = '<p class="text-slate-500 italic">Please sign in or wait for authentication.</p>';
+                    return;
+                }
+
+                pastReflectionsList.innerHTML = '<p class="text-slate-500 italic">Loading past reflections...</p>';
+                try {
+                    const reflectionsColRef = collection(db, `artifacts/${appId}/users/${currentUserId}/teacherReflections`);
+                    const q = query(reflectionsColRef, orderBy('timestamp', 'desc'), limit(5)); // Show last 5
+                    const querySnapshot = await getDocs(q);
+
+                    if (querySnapshot.empty) {
+                        pastReflectionsList.innerHTML = '<p class="text-slate-500 italic">No past reflections found.</p>';
+                        return;
+                    }
+
+                    let reflectionsHtml = '';
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        const date = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleString() : 'N/A';
+                        reflectionsHtml += `
+                            <div class="bg-slate-50 p-4 rounded-md border border-slate-200">
+                                <p class="text-sm text-slate-500 mb-2"><strong>Date:</strong> ${date}</p>
+                                <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                    ${selCompetencies.map(c => `<li><strong>${c.name}:</strong> ${data[c.name.replace(/\s/g, '')] || 'No reflection'}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    });
+                    pastReflectionsList.innerHTML = reflectionsHtml;
+                } catch (e) {
+                    console.error("Error loading reflections: ", e);
+                    pastReflectionsList.innerHTML = '<p class="text-red-600">Error loading past reflections.</p>';
+                }
+            }
+
+            async function prePopulateReflections() {
+                if (!isAuthReady || !db || !currentUserId) return;
+
+                try {
+                    const reflectionsColRef = collection(db, `artifacts/${appId}/users/${currentUserId}/teacherReflections`);
+                    const q = query(reflectionsColRef, orderBy('timestamp', 'desc'), limit(1)); // Get the most recent
+                    const querySnapshot = await getDocs(q);
+
+                    if (!querySnapshot.empty) {
+                        const latestReflection = querySnapshot.docs[0].data();
+                        selCompetencies.forEach(c => {
+                            const textarea = document.getElementById(`reflection-${c.name.replace(/\s/g, '-')}`);
+                            if (textarea && latestReflection[c.name.replace(/\s/g, '')]) {
+                                textarea.value = latestReflection[c.name.replace(/\s/g, '')];
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error pre-populating reflections: ", e);
+                }
+            }
+
+            saveReflectionsBtn.addEventListener('click', saveReflections);
+
+            const renderStudentSELContent = () => {
+                const selectedGrade = document.getElementById('grade-level-select').value;
+                const contentDiv = document.getElementById('student-sel-content');
+                const data = studentSELCopy[selectedGrade];
+                contentDiv.innerHTML = `
+                    <h4 class="font-semibold text-slate-800 mb-2">${data.title}</h4>
+                    ${data.content}
+                `;
+            };
+
+            document.getElementById('grade-level-select').addEventListener('change', renderStudentSELContent);
+
+            const renderSkillsAtAGlanceTable = () => {
+                const tbody = document.querySelector('#skills-table tbody');
+                tbody.innerHTML = skillsAtAGlanceData.map(row => `
+                    <tr>
+                        <td class="font-semibold text-teal-700">${row.competency}</td>
+                        <td onclick="showSkillDetail('${row.competency}', 'k-3')">${row['k-3']}</td>
+                        <td onclick="showSkillDetail('${row.competency}', '4-6')">${row['4-6']}</td>
+                        <td onclick="showSkillDetail('${row.competency}', '7-9')">${row['7-9']}</td>
+                        <td onclick="showSkillDetail('${row.competency}', '10-12')">${row['10-12']}</td>
+                    </tr>
+                `).join('');
+            };
+
+            const showSkillDetail = (competency, grade) => {
+                const detailKey = `${competency}_${grade}`;
+                const data = skillDetails[detailKey];
+                const detailTitle = document.getElementById('detail-title');
+                const detailContent = document.getElementById('detail-content');
+
+                if (!data) {
+                    detailTitle.textContent = 'Content Not Available';
+                    detailContent.innerHTML = '<p>Details for this skill and grade level are not yet available. Please check back later or select another option.</p>';
+                } else {
+                    detailTitle.textContent = data.title;
+                    detailContent.innerHTML = `
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">What it may look like in class:</h3>
+                        <ul class="list-disc list-inside space-y-1 mb-4">
+                            ${data.examples.map(example => `<li>${example}</li>`).join('')}
+                        </ul>
+
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">Sample Introductory Lesson Plan:</h3>
+                        <div class="bg-slate-50 p-4 rounded-md border border-slate-200">
+                            <p class="mb-1"><strong>Lesson Title:</strong> ${data.lessonPlan.title}</p>
+                            <p class="mb-1"><strong>Objective:</strong> ${data.lessonPlan.objective}</p>
+                            <p class="mb-1"><strong>Materials:</strong> ${data.lessonPlan.materials}</p>
+                            <p><strong>Activity:</strong> ${data.lessonPlan.activity}</p>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2 mt-4">Sample Activity to Support this Skill:</h3>
+                        <p class="bg-slate-50 p-4 rounded-md border border-slate-200">${data.activity}</p>
+                    `;
+                }
+                navigate('skill-detail-page');
+            };
+
+            document.getElementById('back-to-skills').addEventListener('click', () => navigate('skills-at-glance'));
+
+            const renderTools = () => {
+                const competencyFilter = document.getElementById('filter-competency').value;
+                const typeFilter = document.getElementById('filter-type').value;
+                const container = document.getElementById('tool-cards-container');
+
+                const filteredTools = tools.filter(tool => {
+                    const competencyMatch = competencyFilter === 'all' || tool.competencies.includes(competencyFilter);
+                    const typeMatch = typeFilter === 'all' || tool.type === typeFilter;
+                    return competencyMatch && typeMatch;
+                });
+
+                if (filteredTools.length === 0) {
+                    container.innerHTML = `<p class="text-slate-500 italic col-span-full text-center">No tools match your current filters. Try a different combination!</p>`;
+                    return;
+                }
+
+                container.innerHTML = filteredTools.map(tool => `
+                    <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col">
+                        <h4 class="font-bold text-teal-700 mb-2">${tool.name} <span class="text-sm font-normal">${tool.type === 'Tech' ? '💻' : tool.type === 'Procedure' ? '📋' : '📖'}</span></h4>
+                        <p class="text-slate-600 text-sm flex-grow mb-3">${tool.description}</p>
+                        <div class="flex flex-wrap gap-1">
+                            ${tool.competencies.map(c => `<span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full">${c}</span>`).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            };
+
+            document.getElementById('filter-competency').addEventListener('change', renderTools);
+            document.getElementById('filter-type').addEventListener('change', renderTools);
+
+            const renderPlanningAccordion = () => {
+                const container = document.getElementById('planning-accordion');
+                container.innerHTML = planningContent.map((item, index) => `
+                    <div>
+                        <button class="accordion-button w-full text-left p-4 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold text-slate-700 flex justify-between items-center">
+                            <span>${item.title}</span>
+                            <span class="transform transition-transform duration-300">▼</span>
+                        </button>
+                        <div class="accordion-content bg-white p-4 rounded-b-lg border-x border-b border-slate-200">
+                            <p class="text-slate-600">${item.content}</p>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.querySelectorAll('.accordion-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const content = button.nextElementSibling;
+                        const icon = button.querySelector('span:last-child');
+                        if (content.style.maxHeight) {
+                            content.style.maxHeight = null;
+                            icon.style.transform = 'rotate(0deg)';
+                        } else {
+                            document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
+                            document.querySelectorAll('.accordion-button span:last-child').forEach(i => i.style.transform = 'rotate(0deg)');
+                            content.style.maxHeight = content.scrollHeight + "px";
+                            icon.style.transform = 'rotate(180deg)';
+                        }
+                    });
+                });
+            };
+            
+            const renderResources = () => {
+                const container = document.getElementById('resources-list');
+                container.innerHTML = resourcesContent.map(category => `
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-700 mb-3">${category.category}</h3>
+                        <div class="space-y-3">
+                            ${category.items.map(item => `
+                                <div class="bg-slate-100 p-4 rounded-lg">
+                                    <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="font-bold text-teal-700 hover:underline">${item.name}</a>
+                                    <p class="text-sm text-slate-600 mt-1">${item.description}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            };
+            
+            const renderSELChart = () => {
+                const ctx = document.getElementById('selChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: selCompetencies.map(c => c.name),
+                        datasets: [{
+                            label: 'SEL Competencies',
+                            data: [1, 1, 1, 1, 1],
+                            backgroundColor: selCompetencies.map(c => c.color),
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 15,
+                                    padding: 15,
+                                    font: { size: 12 }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const competency = selCompetencies[context.dataIndex];
+                                        return competency.description;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            };
+
+            renderCompetencyCards();
+            renderReflectionForm(); // Render the reflection form
+            renderStudentSELContent();
+            renderSkillsAtAGlanceTable();
+            renderTools();
+            renderPlanningAccordion();
+            renderResources();
+            renderSELChart();
+        });
+    </script>
+
+</body>
+</html>
