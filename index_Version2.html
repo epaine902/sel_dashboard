@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--
+    Supporting the Whole Child: An Interactive Guide
+    ------------------------------------------------
+    This application is designed for educators to
+    - Reflect on their own Social Emotional Learning (SEL) competencies
+    - Investigate student SEL skills based on age, grade, and development
+    - Discover tech tools, text resources, and classroom procedures
+    - Plan lessons and environments that support SEL, aligned with Nova Scotia curriculum
+    The dashboard is interactive, filterable, and organized for quick reference.
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supporting the Whole Child: An Interactive Guide</title>
+    <meta name="description" content="An interactive dashboard for educators to reflect, explore, and plan Social Emotional Learning in Nova Scotia classrooms.">
+    <meta name="author" content="epaine902">
+    <meta property="og:title" content="Supporting the Whole Child: An Interactive Guide">
+    <meta property="og:description" content="Interactive SEL dashboard for educators — reflect, explore, and plan using Nova Scotia curriculum.">
+    <meta property="og:type" content="website">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .nav-active {
+            background-color: #0d9488; /* teal-600 */
+            color: white;
+        }
+        .nav-inactive {
+            background-color: white;
+            color: #334155; /* slate-700 */
+        }
+        .nav-button:focus {
+            outline: 2px solid #0d9488;
+            outline-offset: 2px;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 350px;
+            margin-left: auto;
+            margin-right: auto;
+            height: auto;
+            max-height: 350px;
+        }
+        /* Accessibility: visually hidden class */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="app" class="container mx-auto p-4 md:p-6 lg:p-8 max-w-7xl">
+
+        <!-- Application Introduction -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-teal-700">Supporting the Whole Child</h1>
+            <p class="text-lg md:text-xl text-slate-600 mt-2 font-medium">
+                An interactive guide for Nova Scotia educators to reflect, investigate, and plan for Social Emotional Learning (SEL).<br>
+                <span class="text-teal-800">Start by examining your own SEL skill set, then use this lens to explore your students’ skills and plan for their learning journey in the new year.</span>
+            </p>
+        </header>
+
+        <!-- Navigation -->
+        <nav id="main-nav" class="sticky top-0 z-10 bg-white/80 backdrop-blur-sm shadow-md rounded-lg mb-8 flex flex-wrap justify-center items-center gap-2 p-2" role="tablist" aria-label="Main navigation">
+            <button data-target="sel-lens" class="nav-button nav-active px-4 py-2 rounded-md font-semibold transition-colors duration-200 text-sm md:text-base" role="tab" aria-selected="true" aria-controls="sel-lens" tabindex="0">1. The SEL Lens</button>
+            <button data-target="toolbox" class="nav-button nav-inactive px-4 py-2 rounded-md font-semibold transition-colors duration-200 text-sm md:text-base" role="tab" aria-selected="false" aria-controls="toolbox" tabindex="0">2. The Toolbox</button>
+            <button data-target="planning" class="nav-button nav-inactive px-4 py-2 rounded-md font-semibold transition-colors duration-200 text-sm md:text-base" role="tab" aria-selected="false" aria-controls="planning" tabindex="0">3. Lesson Planning</button>
+            <button data-target="resources" class="nav-button nav-inactive px-4 py-2 rounded-md font-semibold transition-colors duration-200 text-sm md:text-base" role="tab" aria-selected="false" aria-controls="resources" tabindex="0">4. Resources</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main id="main-content">
+
+            <!-- SEL Competency Reflection -->
+            <section id="sel-lens" class="content-section space-y-8" aria-labelledby="sel-lens-header">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 id="sel-lens-header" class="text-2xl font-bold text-teal-700 mb-4">Start Here: The Educator's SEL Lens</h2>
+                    <p class="text-slate-600 mb-6">
+                        Effective Social-Emotional Learning begins with us. Start by examining your own SEL skills using the interactive prompts below.
+                    </p>
+                    <div class="grid md:grid-cols-2 gap-8 items-start">
+                        <div>
+                            <h3 class="text-xl font-semibold mb-4 text-slate-700">Examine Your Own SEL Skillset</h3>
+                            <p class="text-slate-600 mb-4">
+                                Click a competency to get a reflection prompt. Consider a recent classroom challenge: What skills helped? Which do you wish you had more of?
+                            </p>
+                            <div id="sel-competency-cards" class="space-y-3"></div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="selChart" aria-label="SEL Competency Chart" role="img"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-xl font-semibold mb-4 text-slate-700">Understanding Student SEL: A Developmental Spectrum</h3>
+                    <p class="text-slate-600 mb-4">
+                        SEL skills vary by age, grade, and developmental ability. Select a grade to view typical markers and what to observe in diverse classrooms.
+                    </p>
+                    <div class="mb-4">
+                        <label for="grade-level-select" class="block text-sm font-medium text-slate-700 mb-1">Select Grade Level:</label>
+                        <select id="grade-level-select" class="w-full md:w-1/2 p-2 border border-slate-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500" aria-label="Select grade level">
+                            <option value="k-3">Primary (K-3)</option>
+                            <option value="4-6">Elementary (4-6)</option>
+                            <option value="7-9">Junior High (7-9)</option>
+                            <option value="10-12">Senior High (10-12)</option>
+                        </select>
+                    </div>
+                    <div id="student-sel-content" class="bg-slate-50 p-4 rounded-md border border-slate-200"></div>
+                </div>
+            </section>
+
+            <!-- Toolbox Section -->
+            <section id="toolbox" class="content-section hidden space-y-6" aria-labelledby="toolbox-header">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 id="toolbox-header" class="text-2xl font-bold text-teal-700 mb-4">The Toolbox</h2>
+                    <p class="text-slate-600 mb-6">
+                        Curated tech tools, text resources, and classroom procedures to nurture Social-Emotional Learning. Filter to find what's best for your students and lessons.
+                    </p>
+                    <div class="flex flex-wrap gap-4 p-4 bg-slate-100 rounded-lg mb-6">
+                        <div class="flex-grow">
+                            <label for="filter-competency" class="block text-sm font-medium text-slate-700">Filter by SEL Competency</label>
+                            <select id="filter-competency" class="mt-1 block w-full p-2 border-slate-300 rounded-md shadow-sm" aria-label="Filter by SEL competency">
+                                <option value="all">All Competencies</option>
+                                <option value="Self-Awareness">Self-Awareness</option>
+                                <option value="Self-Management">Self-Management</option>
+                                <option value="Social Awareness">Social Awareness</option>
+                                <option value="Relationship Skills">Relationship Skills</option>
+                                <option value="Responsible Decision-Making">Responsible Decision-Making</option>
+                            </select>
+                        </div>
+                        <div class="flex-grow">
+                            <label for="filter-type" class="block text-sm font-medium text-slate-700">Filter by Tool Type</label>
+                            <select id="filter-type" class="mt-1 block w-full p-2 border-slate-300 rounded-md shadow-sm" aria-label="Filter by tool type">
+                                <option value="all">All Types</option>
+                                <option value="Tech">&#128187; Tech Tool</option>
+                                <option value="Procedure">&#128203; Classroom Procedure</option>
+                                <option value="Text">&#128214; Text-Based Resource</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="tool-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+            </section>
+
+            <!-- Lesson Planning Section -->
+            <section id="planning" class="content-section hidden space-y-6" aria-labelledby="planning-header">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 id="planning-header" class="text-2xl font-bold text-teal-700 mb-4">Integrating SEL into Lesson Planning</h2>
+                    <p class="text-slate-600 mb-6">
+                        SEL is woven into your curriculum. Explore frameworks and strategies for embedding SEL in lessons, aligned with Nova Scotia’s standards and supporting diverse learners.
+                    </p>
+                    <div id="planning-accordion" class="space-y-3"></div>
+                </div>
+            </section>
+
+            <!-- Resources Section -->
+            <section id="resources" class="content-section hidden space-y-6" aria-labelledby="resources-header">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 id="resources-header" class="text-2xl font-bold text-teal-700 mb-4">Resources & Next Steps</h2>
+                    <p class="text-slate-600 mb-6">
+                        Continue your journey with these curated resources: organizations, articles, and materials to support SEL and technology integration in Nova Scotia classrooms.
+                    </p>
+                    <div id="resources-list" class="space-y-4"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Accessibility: Tab navigation
+            const navButtons = document.querySelectorAll('.nav-button');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            function navigate(targetId) {
+                contentSections.forEach(section => {
+                    section.classList.toggle('hidden', section.id !== targetId);
+                });
+                navButtons.forEach(button => {
+                    button.classList.toggle('nav-active', button.dataset.target === targetId);
+                    button.classList.toggle('nav-inactive', button.dataset.target !== targetId);
+                    button.setAttribute('aria-selected', button.dataset.target === targetId ? "true" : "false");
+                });
+            }
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => navigate(button.dataset.target));
+                button.addEventListener('keydown', (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate(button.dataset.target);
+                    }
+                });
+            });
+
+            // SEL Competency Data
+            const selCompetencies = [
+                { name: 'Self-Awareness', color: '#0d9488', description: 'Recognizing one\'s emotions, values, strengths, and limitations.', prompt: 'How do you recognize your own emotional triggers during a busy school day?' },
+                { name: 'Self-Management', color: '#0f766e', description: 'Managing emotions, thoughts, and behaviors effectively in different situations.', prompt: 'What strategy do you use to stay calm and focused when a lesson goes off-track?' },
+                { name: 'Social Awareness', color: '#115e59', description: 'Understanding the perspectives of and empathizing with others.', prompt: 'How do you work to understand the perspective of a student with a very different background from your own?' },
+                { name: 'Relationship Skills', color: '#134e4a', description: 'Establishing and maintaining healthy and supportive relationships.', prompt: 'Think of a difficult conversation with a colleague or parent. What relationship skills did you use?' },
+                { name: 'Responsible Decision-Making', color: '#042f2e', description: 'Making caring and constructive choices about personal behavior and social interactions.', prompt: 'How do you model ethical and responsible decision-making when using technology in your classroom?' }
+            ];
+
+            // Student SEL Content by Grade
+            const studentSELCopy = {
+                'k-3': {
+                    title: 'Primary (K-3)',
+                    content: `
+                        <p class="mb-2"><strong>What it looks like:</strong> Students are learning to identify basic emotions (happy, sad, angry), take turns, and follow simple directions. They are highly egocentric but beginning to show empathy.</p>
+                        <p><strong>What to observe:</strong> Ability to name feelings, share toys, listen during story time, and ask for help. For diverse learners, look for non-verbal cues and provide visual aids for emotions.</p>
+                    `
+                },
+                '4-6': {
+                    title: 'Elementary (4-6)',
+                    content: `
+                        <p class="mb-2"><strong>What it looks like:</strong> Developing more complex emotional vocabulary, understanding others' perspectives, and managing friendships. Group work can be challenging.</p>
+                        <p><strong>What to observe:</strong> How they handle disagreements, work in groups, show empathy for peers, and manage frustration with difficult tasks. Tech can be a great outlet for expression but also a source of conflict.</p>
+                    `
+                },
+                '7-9': {
+                    title: 'Junior High (7-9)',
+                    content: `
+                        <p class="mb-2"><strong>What it looks like:</strong> Navigating complex social hierarchies, peer pressure, and a stronger sense of self-identity. Emotional regulation can be a major challenge.</p>
+                        <p><strong>What to observe:</strong> Online social interactions (digital citizenship), response to feedback, ability to set and work toward long-term goals, and how they advocate for themselves and others. Support for executive functioning is key.</p>
+                    `
+                },
+                '10-12': {
+                    title: 'Senior High (10-12)',
+                    content: `
+                        <p class="mb-2"><strong>What it looks like:</strong> Making high-stakes decisions about the future, managing stress, and maintaining complex relationships. Developing a sense of purpose and ethical responsibility.</p>
+                        <p><strong>What to observe:</strong> Responsible use of technology for research and collaboration, ability to manage long-term projects, conflict resolution skills, and planning for post-secondary life. Agency and self-advocacy are critical.</p>
+                    `
+                }
+            };
+
+            // Toolbox Data
+            const tools = [
+                { name: 'Flip (formerly Flipgrid)', type: 'Tech', competencies: ['Self-Awareness', 'Relationship Skills'], description: 'Video discussion platform for students to reflect, share ideas, and provide peer feedback.' },
+                { name: 'Seesaw', type: 'Tech', competencies: ['Self-Awareness', 'Self-Management'], description: 'Digital portfolio tool for students to document their learning, reflect on progress, and set goals.' },
+                { name: 'Google Docs/Slides Portfolios', type: 'Tech', competencies: ['Self-Awareness', 'Self-Management'], description: 'Simple, powerful way for students to curate and reflect on their work over time.' },
+                { name: 'Trello / Padlet', type: 'Tech', competencies: ['Self-Management'], description: 'Visual organization tools to help students manage tasks, break down large projects, and track progress.' },
+                { name: 'Calm or Headspace Apps', type: 'Tech', competencies: ['Self-Management'], description: 'Guided meditation and mindfulness resources to help students manage stress and focus.' },
+                { name: 'Google Workspace / M365', type: 'Tech', competencies: ['Relationship Skills', 'Responsible Decision-Making'], description: 'Collaborative suites for group projects that require communication, shared responsibility, and digital etiquette.' },
+                { name: 'StoryboardThat / Book Creator', type: 'Tech', competencies: ['Social Awareness'], description: 'Digital storytelling tools to help students explore different perspectives and build empathy.' },
+                { name: 'Online Safety Simulations', type: 'Tech', competencies: ['Responsible Decision-Making'], description: 'Interactive scenarios (e.g., from Common Sense Education) that challenge students to make safe and ethical choices online.' },
+                { name: 'Morning Meetings/Check-ins', type: 'Procedure', competencies: ['Self-Awareness', 'Social Awareness', 'Relationship Skills'], description: 'A daily routine to build community, where students can share feelings and connect with peers.' },
+                { name: 'Restorative Practices', type: 'Procedure', competencies: ['Relationship Skills', 'Responsible Decision-Making'], description: 'A framework for resolving conflict that focuses on repairing harm and rebuilding relationships.' },
+                { name: 'Explicit Communication Norms', type: 'Procedure', competencies: ['Relationship Skills'], description: 'Co-creating guidelines for respectful communication for both in-person and digital conversations (e.g., in an LMS).' },
+                { name: 'SEL-Focused Literature', type: 'Text', competencies: ['Social Awareness', 'Self-Awareness'], description: 'Using picture books, novels, and articles as a springboard for discussions about emotions, empathy, and ethical dilemmas.' },
+                { name: 'Emotion Charts / Visuals', type: 'Text', competencies: ['Self-Awareness'], description: 'Visual aids that help students identify and name their feelings, especially useful for younger learners or EAL students.' },
+                { name: 'Social Stories', type: 'Text', competencies: ['Social Awareness'], description: 'Narratives that describe social situations to help students understand social cues and appropriate responses.' }
+            ];
+
+            // Planning Content
+            const planningContent = [
+                { title: 'Aligning with NS Curriculum', content: 'SEL is not an "add-on." Look for verbs in your curriculum outcomes like "collaborate," "analyze," "justify," or "solve." These are entry points for SEL. A history project on different perspectives naturally builds Social Awareness. A science lab requires collaboration and Responsible Decision-Making. The key is to be intentional about naming and nurturing these skills during the academic task.' },
+                { title: 'Universal Design for Learning (UDL)', content: 'UDL and SEL are deeply connected. Use technology to provide multiple means of engagement (e.g., choice in tools), representation (e.g., text, video, audio), and action/expression (e.g., letting students show what they know via a podcast, a slide deck, or a written report). This flexibility supports both academic learning and student agency, a cornerstone of SEL.' },
+                { title: 'Project-Based & Inquiry-Based Learning', content: 'PBL and inquiry-based learning are powerful vehicles for SEL. They require students to manage long-term tasks (Self-Management), work with peers (Relationship Skills), consider different viewpoints (Social Awareness), and make choices about their project\'s direction (Responsible Decision-Making). Technology can facilitate this process from research and collaboration to creating and sharing the final product.' },
+                { title: 'Formative Assessment of SEL', content: 'Assessing SEL is about observation, not grading. Use simple digital checklists to note student collaboration during a project. Have students use a Google Form for a quick self-assessment after a group task. Use portfolio reflections (Seesaw, Flip) to see how students are thinking about their own growth. The goal is to gather information to better support them.' }
+            ];
+
+            // Resources Content
+            const resourcesContent = [
+                { category: 'Organizations', items: [
+                    { name: 'CASEL', url: 'https://casel.org/', description: 'The Collaborative for Academic, Social, and Emotional Learning; the leading source for SEL frameworks and research.' },
+                    { name: 'Edutopia', url: 'https://www.edutopia.org/social-emotional-learning', description: 'A rich source of articles, videos, and practical strategies for SEL in the classroom.' },
+                    { name: 'Common Sense Education', url: 'https://www.commonsense.org/education/digital-citizenship', description: 'Excellent resources and curricula for teaching digital citizenship, a key part of modern SEL.' }
+                ]},
+                { category: 'Nova Scotia Specific', items: [
+                    { name: 'NSDE Curriculum', url: 'https://curriculum.novascotia.ca/', description: 'Explore the provincial curriculum documents to find direct links to SEL competencies.' },
+                    { name: 'Inclusive Education Policy (NS)', url: 'https://www.ednet.ns.ca/inclusiveeducation', description: 'Review the provincial policy that underpins the work of supporting all learners.' }
+                ]}
+            ];
+
+            // Render Functions
+            function renderCompetencyCards() {
+                const container = document.getElementById('sel-competency-cards');
+                container.innerHTML = selCompetencies.map(c => `
+                    <div class="border border-slate-200 rounded-lg p-3 cursor-pointer hover:bg-slate-100" tabindex="0" role="button" aria-label="Reflect on ${c.name}" onclick="alert('Reflection: ${c.prompt.replace(/'/g, "\\'")}')">
+                        <h4 class="font-semibold text-teal-700">${c.name}</h4>
+                        <p class="text-sm text-slate-500">${c.description}</p>
+                    </div>
+                `).join('');
+            }
+
+            function renderStudentSELContent() {
+                const selectedGrade = document.getElementById('grade-level-select').value;
+                const contentDiv = document.getElementById('student-sel-content');
+                const data = studentSELCopy[selectedGrade];
+                contentDiv.innerHTML = `
+                    <h4 class="font-semibold text-slate-800 mb-2">${data.title}</h4>
+                    ${data.content}
+                `;
+            }
+            document.getElementById('grade-level-select').addEventListener('change', renderStudentSELContent);
+
+            function renderTools() {
+                const competencyFilter = document.getElementById('filter-competency').value;
+                const typeFilter = document.getElementById('filter-type').value;
+                const container = document.getElementById('tool-cards-container');
+
+                const filteredTools = tools.filter(tool => {
+                    const competencyMatch = competencyFilter === 'all' || tool.competencies.includes(competencyFilter);
+                    const typeMatch = typeFilter === 'all' || tool.type === typeFilter;
+                    return competencyMatch && typeMatch;
+                });
+
+                if (filteredTools.length === 0) {
+                    container.innerHTML = `<p class="text-slate-500 italic col-span-full text-center">No tools match your current filters. Try a different combination!</p>`;
+                    return;
+                }
+
+                container.innerHTML = filteredTools.map(tool => `
+                    <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col">
+                        <h4 class="font-bold text-teal-700 mb-2">${tool.name} <span class="text-sm font-normal">${tool.type === 'Tech' ? '💻' : tool.type === 'Procedure' ? '📃' : '📖'}</span></h4>
+                        <p class="text-slate-600 text-sm flex-grow mb-3">${tool.description}</p>
+                        <div class="flex flex-wrap gap-1">
+                            ${tool.competencies.map(c => `<span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full">${c}</span>`).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('filter-competency').addEventListener('change', renderTools);
+            document.getElementById('filter-type').addEventListener('change', renderTools);
+
+            function renderPlanningAccordion() {
+                const container = document.getElementById('planning-accordion');
+                container.innerHTML = planningContent.map((item, index) => `
+                    <div>
+                        <button class="accordion-button w-full text-left p-4 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold text-slate-700 flex justify-between items-center" aria-expanded="false" aria-controls="planning-content-${index}">
+                            <span>${item.title}</span>
+                            <span class="transform transition-transform duration-300">▼</span>
+                        </button>
+                        <div id="planning-content-${index}" class="accordion-content bg-white p-4 rounded-b-lg border-x border-b border-slate-200">
+                            <p class="text-slate-600">${item.content}</p>
+                        </div>
+                    </div>
+                `).join('');
+
+                document.querySelectorAll('.accordion-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const content = button.nextElementSibling;
+                        const icon = button.querySelector('span:last-child');
+                        const expanded = button.getAttribute('aria-expanded') === "true";
+                        document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
+                        document.querySelectorAll('.accordion-button').forEach(b => b.setAttribute('aria-expanded', "false"));
+                        document.querySelectorAll('.accordion-button span:last-child').forEach(i => i.style.transform = 'rotate(0deg)');
+                        if (!expanded) {
+                            content.style.maxHeight = content.scrollHeight + "px";
+                            icon.style.transform = 'rotate(180deg)';
+                            button.setAttribute('aria-expanded', "true");
+                        }
+                    });
+                });
+            }
+
+            function renderResources() {
+                const container = document.getElementById('resources-list');
+                container.innerHTML = resourcesContent.map(category => `
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-700 mb-3">${category.category}</h3>
+                        <div class="space-y-3">
+                            ${category.items.map(item => `
+                                <div class="bg-slate-100 p-4 rounded-lg">
+                                    <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="font-bold text-teal-700 hover:underline">${item.name}</a>
+                                    <p class="text-sm text-slate-600 mt-1">${item.description}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function renderSELChart() {
+                const ctx = document.getElementById('selChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: selCompetencies.map(c => c.name),
+                        datasets: [{
+                            label: 'SEL Competencies',
+                            data: [1, 1, 1, 1, 1],
+                            backgroundColor: selCompetencies.map(c => c.color),
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 15,
+                                    padding: 15,
+                                    font: { size: 12 }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const competency = selCompetencies[context.dataIndex];
+                                        return competency.description;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Initial Render
+            renderCompetencyCards();
+            renderStudentSELContent();
+            renderTools();
+            renderPlanningAccordion();
+            renderResources();
+            renderSELChart();
+        });
+    </script>
+</body>
+</html>
